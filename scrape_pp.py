@@ -2,7 +2,6 @@ import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
 
 
 options = uc.ChromeOptions()
@@ -19,12 +18,14 @@ element.click()
 # get all available sports leagues
 leagues = driver.find_element(By.XPATH, '//*[@id="board"]/div[1]/div/div').find_elements(By.XPATH, '*')
 leagues_dict = {league.text: league for league in leagues}
+print(leagues_dict.keys())
 
 # click on MLB
 leagues_dict['MLB'].click()
 
 # get all stats
-element = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'stat-container')))
+element = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, 'stat-container')))
+print(element.text)
 mlb_stats = element.find_elements(By.XPATH, '*')
 mlb_stats_dict = {stat.text: stat for stat in mlb_stats}
 
