@@ -1,8 +1,5 @@
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, confusion_matrix
 import statsapi
 
 
@@ -10,7 +7,7 @@ mlb_team_ids = {'ARI': 109, 'ATL': 144, 'BAL': 110, 'BOS': 111, 'CHC': 112, 'CHW
                 'MIA': 146, 'HOU': 117, 'KAN': 118, 'KC': 118, 'LAA': 108, 'LAD': 119, 'MIL': 158, 'MIN': 142, 'NYM': 121, 'NYY': 147, 'OAK': 133,
                 'PHI': 143, 'PIT': 134, 'SD': 135, 'SF': 137, 'SEA': 136, 'STL': 138, 'TB': 139, 'TEX': 140, 'TOR': 141, 'WAS': 120, 'WSH': 120}
 
-def get_games_data(name):
+def pitcher_games_data(name):
     id = statsapi.lookup_player(name)[0]['id']
     stats = statsapi.get('person', {'personId': id, 'hydrate': 'stats(group=pitching,type=gameLog,seasons=[2018,2019,2020,2021,2022,2023])'})
     game_logs = stats['people'][0]['stats'][0]['splits']
