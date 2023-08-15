@@ -3,17 +3,28 @@ import pandas as pd
 import statsapi
 
 
-mlb_team_ids = {'ARI': 109, 'ATL': 144, 'BAL': 110, 'BOS': 111, 'CHC': 112, 'CHW': 145, 'CWS': 145, 'CIN': 113, 'CLE': 114, 'COL': 115, 'DET': 116,
-                'MIA': 146, 'HOU': 117, 'KAN': 118, 'KC': 118, 'LAA': 108, 'LAD': 119, 'MIL': 158, 'MIN': 142, 'NYM': 121, 'NYY': 147, 'OAK': 133,
-                'PHI': 143, 'PIT': 134, 'SD': 135, 'SF': 137, 'SEA': 136, 'STL': 138, 'TB': 139, 'TEX': 140, 'TOR': 141, 'WAS': 120, 'WSH': 120}
+def teams_hitting(seasons=[2018, 2019, 2020, 2021, 2022, 2023]):
+    teams_hitting_list = []
 
-def pitcher_games_data(name):
+    for season in seasons:
+        teams_season = statsapi.get('teams_stats', {'season': season, 'sportIds': 1, 'group': 'hitting', 'stats': 'season'})['stats'][0]['splits']
+        for team in teams_season:
+            team_id = team['team']['id']
+            team_stat = team['stat']
+            num_games = team_stat['gamesPlayed']
+            strikeouts_game = team_stat['strikeOuts'] / num_games
+            hits_game = team_stat['hits'] / num_games
+            teams_hitting_list.append({'season': season, 'team_id': team_id, 'strikeouts_game': strikeouts_game, 'hits_game': hits_game})
+
+    teams_hitting_df = pd.DataFrame(teams_hitting_list)
+    return teams_hitting_df
+
+def pitcher_gamelogs(name):
     id = statsapi.lookup_player(name)[0]['id']
     stats = statsapi.get('person', {'personId': id, 'hydrate': 'stats(group=pitching,type=gameLog,seasons=[2018,2019,2020,2021,2022,2023])'})
     game_logs = stats['people'][0]['stats'][0]['splits']
 
     games_data = []
-    opp_memo = {}
 
     for log in game_logs:
         stat = log['stat']
@@ -23,18 +34,22 @@ def pitcher_games_data(name):
         batters_faced = stat['battersFaced']
         strikes = stat['strikes']
         home = log['isHome']
-
         opp_id = log['opponent']['id']
         season = log['season']
-        if (opp_id, season) not in opp_memo:
-            opp_stats = statsapi.get('team_stats', {'teamId': opp_id, 'season': season, 'sportIds': 1, 'group': 'hitting', 'stats': 'season'})['stats'][0]['splits'][0]['stat']
-            opp_num_games = opp_stats['gamesPlayed']
-            opp_strikouts_game = opp_stats['strikeOuts'] / opp_num_games
-            opp_hits_game = opp_stats['hits'] / opp_num_games
-            opp_memo[(opp_id, season)] = (opp_strikouts_game, opp_hits_game)
+        games_data.append((strikeouts, hits, number_of_pitches, batters_faced, strikes, home, opp_id, season))
 
-        games_data.append((strikeouts, hits, number_of_pitches, batters_faced, strikes, home, *opp_memo[(opp_id, season)]))
-
-    games_df = pd.DataFrame(games_data, columns=['strikeouts', 'hits', 'number_of_pitches', 'batters_faced', 'strikes', 'home', 'opp_strikouts_game', 'opp_hits_game'])
-    
+    games_df = pd.DataFrame(games_data, columns=['strikeouts', 'hits', 'number_of_pitches', 'batters_faced', 'strikes', 'home', 'opp_id', 'season'])
     return games_df
+
+def next_game(name):
+    team_id = statsapi.lookup_player(name)[0]['currentTeam']['id']
+    next_game_id = statsapi.next_game(team_id)
+    game_data = statsapi.schedule(game_id=next_game_id)[0]
+
+    home = game_data['home_id'] == team_id
+    if home:
+        opp_id = game_data['away_id']
+    else:
+        opp_id = game_data['home_id']
+
+    return home, opp_id
